@@ -1,0 +1,6 @@
+---
+# handlers file for zfs
+- name: "update dnf cache"
+  ansible.builtin.dnf:
+    update_cache: true
+    update_only: true

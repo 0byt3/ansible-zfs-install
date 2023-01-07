@@ -1,0 +1,58 @@
+- name: "Add epel repository"
+  ansible.builtin.dnf:
+    name: ["epel-release", "dnf-utils"]
+    update_cache: true
+    state: "present"
+
+- name: "Perform system update"
+  ansible.builtin.dnf:
+    update_only: true
+    state: "latest"
+
+- name: "Check if restart is needed"
+  ansible.builtin.command:
+    cmd: "needs-restarting -r"
+  changed_when: need_restart_check.rc == 1
+  failed_when: need_restart_check.rc == 0 and need_restart_check.rc == 1
+  ignore_errors: true
+  register: need_restart_check
+
+- when: need_restart_check.rc == 1 and auto_reboot|default(false)
+  ansible.builtin.include_tasks: "restart-server.yml"
+
+- when: need_restart_check.rc == 1 and not auto_reboot|default(false)
+  ansible.builtin.include_tasks: "stop-need-restart.yml"
+
+- name: "Add ZFS repository"
+  ansible.builtin.shell:
+    cmd: |
+      dnf -y install https://zfsonlinux.org/epel/zfs-release-2-2$(rpm --eval "%{dist}").noarch.rpm
+  changed_when: add_zfs_repo.stdout is not match('.*already installed')
+  register: add_zfs_repo
+
+# - name: "Add ZFS gpg key"
+#   ansible.builtin.shell:
+#     cmd: |
+#       gpg --import --import-options show-only /etc/pki/rpm-gpg/RPM-GPG-KEY-zfsonlinux
+
+- name: "Install zfs requirements"
+  ansible.builtin.dnf:
+    name: ["dkms", "kernel-devel"]
+    update_cache: true
+    state: "present"
+
+- name: "Install zfs"
+  ansible.builtin.dnf:
+    name: ["zfs"]
+
+- name: "Load zfs kernel module"
+  community.general.modprobe:
+    name: "zfs"
+    state: "present"
+
+- name: "Enable zfs module on boot"
+  ansible.builtin.lineinfile:
+    create: true
+    mode: 0644
+    line: "zfs"
+    path: "/etc/modules-load.d/zfs.conf"

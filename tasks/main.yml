@@ -1,0 +1,7 @@
+---
+# tasks file for zfs
+- when: ansible_os_family is match('RedHat')
+  ansible.builtin.import_tasks: "rhel_family_tasks.yml"
+
+
+# ansible_distribution_version

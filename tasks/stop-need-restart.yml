@@ -1,0 +1,5 @@
+- name: "restart required"
+  ansible.builtin.fail:
+    msg: |
+      Restart is required before tasks can continue. Please restart the server then re-run the playbook/role.
+      This playbook/role can automatically restart the server if the ansible variable auto_reboot is true .
